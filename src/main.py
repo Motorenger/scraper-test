@@ -7,6 +7,9 @@ from sqlalchemy import create_engine, Column, Integer, String
 from sqlalchemy.orm import sessionmaker, Session
 from sqlalchemy.ext.declarative import declarative_base
 
+import gspread
+from oauth2client.service_account import ServiceAccountCredentials
+
 from models import Base, Data 
 
 
@@ -78,13 +81,11 @@ def main(pagination):
     return res
     
 
-
-if __name__ == "__main__":
+def insert_in_db(pages):
+    
     URL_PATH = "postgresql://postgres:mysecretpassword@localhost:5432/mytestdb"
 
     obj_list = []
-
-    pages = int(input("How many pages do u want to scrape?: "))
 
     for obj in main(pages):
         object_instance = Data(**obj)
@@ -94,6 +95,51 @@ if __name__ == "__main__":
     Base.metadata.create_all(engine)
     Session = sessionmaker(bind=engine)
     session = Session()
+
     session.add_all(obj_list)
 
     session.commit()
+    print("Successfully inserted data in db")
+
+
+def insert_in_googlesheet(pages):
+    scope = ["https://spreadsheets.google.com/feeds",'https://www.googleapis.com/auth/spreadsheets',
+        "https://www.googleapis.com/auth/drive.file","https://www.googleapis.com/auth/drive"
+        ]
+    creds = ServiceAccountCredentials.from_json_keyfile_name("main-361919-18fbe1722248.json", scope)
+    client = gspread.authorize(creds)
+    sheet = client.open("Scraper-Test").sheet1   
+
+    head_row = ["img_url", "title", "date_posted", "location", "bedrooms", "description", "currency", "price"]
+    sheet.insert_row(head_row, 1)
+    count = 2
+    for obj in main(pages):
+        row_insert = list(obj.values())
+        row_insert[2] = str(row_insert[2])
+        sheet.insert_row(row_insert, count)
+
+        count+=1
+    print("Successfully inserted data in google sheet")
+
+
+if __name__ == "__main__":
+
+    pages = int(input("How many pages do u want to scrape?: "))
+    
+    choose = int(input("Choose where you want to insert data(1: db, 2: google_sheet, 3: both): "))
+
+    # obj_list = main(pages)
+
+    if choose == 1:
+        insert_in_db(pages)
+        print("End of the program")
+    
+    elif choose == 2:
+        insert_in_googlesheet(pages)
+        print("End of the program")
+
+    
+    elif choose == 3:
+        insert_in_db(pages)
+        insert_in_googlesheet(pages)
+        print("End of the program")

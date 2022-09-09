@@ -8,6 +8,10 @@ beautifulsoup4 = "*"
 requests = "*"
 sqlalchemy = "*"
 psycopg2-binary = "*"
+pygsheets = "*"
+pandas = "*"
+gspread = "*"
+oauth2client = "*"
 
 [dev-packages]
 
